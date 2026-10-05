@@ -1,0 +1,9 @@
+.venv/
+202/__pycache__/
+__pycache__/
+
+# Ignorar todos los Excel de la carpeta Insumos...
+202/Insumos/*.xlsx
+
+# ...¡EXCEPTO la Plantilla base!
+!202/Insumos/Plantilla.xlsx
