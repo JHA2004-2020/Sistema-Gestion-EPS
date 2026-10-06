@@ -270,7 +270,7 @@ def ejecutar_modulo_informe_general(entidad):
                             if not prueba_match.empty:
                                 val_res = prueba_match.iloc[0].get('RESULTADO', '')
                                 
-                                if pd.notnull(val_res) and str(val_res).strip() != "" and str(val_res).lower() != "nan":
+                                if pd.notnull(val_res) and str(val_res).strip() != "" and str(val_res).lower() != "nan" and str(val_res).lower() != "-":
                                     valor_asignado = val_res
                                     
                                     fec_raw = prueba_match.iloc[0].get('FECHA', '')

@@ -70,8 +70,9 @@ def procesar_gestantes_savia(ruta_plantilla_in, ruta_plantilla_out):
             ws.cell(row=fila_destino, column=column_index_from_string("CB"), value=row.iloc[17])
 
         if pd.notnull(row.iloc[1]):
-            ws.cell(row=fila_destino, column=column_index_from_string("BE"), value=row.iloc[1])
-
+            # Convertimos el valor a fecha de forma segura y extraemos solo día, mes y año
+            parsed_fec = pd.to_datetime(str(row.iloc[1]), errors='coerce')
+            if pd.notnull(parsed_fec): ws.cell(row=fila_destino, column=column_index_from_string("BE"), value=parsed_fec.date())
         # -------------------------------------------------------------
         # REGLAS CON PRIORIDAD EN CASCADA
         # -------------------------------------------------------------
