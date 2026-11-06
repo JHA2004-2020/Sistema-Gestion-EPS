@@ -270,8 +270,21 @@ def ejecutar_modulo_informe_general(entidad):
                             if not prueba_match.empty:
                                 val_res = prueba_match.iloc[0].get('RESULTADO', '')
                                 
-                                if pd.notnull(val_res) and str(val_res).strip() != "" and str(val_res).lower() != "nan" and str(val_res).lower() != "-":
-                                    valor_asignado = val_res
+                                if pd.notnull(val_res) and str(val_res).strip() != "" and str(val_res).lower() != "nan" and str(val_res).lower() != "-":    
+                                    # Evaluamos si la columna destino es CB, CD o CF para aplicar la regla de 5 o 4
+                                    col_destino_res = pos_res.upper().strip()
+                                    if col_destino_res in ["CB", "CD", "CF"]:
+                                        val_res_str = str(val_res).strip().upper()
+                                        if val_res_str == "NEGATIVO" or val_res_str == "NO REACTIVO":
+                                            valor_asignado = 5
+                                        elif val_res_str == "POSITIVO" or val_res_str == "REACTIVO":
+                                            valor_asignado = 4
+                                        else:
+                                            # Si dice otra cosa, lo dejamos tal cual o podrías forzarlo a otro número
+                                            valor_asignado = val_res
+                                    else:
+                                        # Para todas las demás columnas, se asigna el resultado normal
+                                        valor_asignado = val_res
                                     
                                     fec_raw = prueba_match.iloc[0].get('FECHA', '')
                                     if pd.notnull(fec_raw):
