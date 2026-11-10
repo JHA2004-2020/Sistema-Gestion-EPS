@@ -6,54 +6,70 @@ from pathlib import Path  # <-- Esto es vital para que no dé error de lectura
 def procesar_informe_hc(ruta_plantilla, ruta_hc):
     """
     Paso 5: Módulo Automatizado INFORME HC
-    Cruza el Peso, Talla y sus Fechas.
+    Cruza el Peso, Talla y sus Fechas usando la nueva estructura del archivo de Peso y Talla.
     """
     if not Path(ruta_hc).exists():
         raise Exception(f"No se encontró el archivo INFORME HC en: {ruta_hc}")
 
+    # Leemos el archivo nuevo de Peso y Talla
     df_hc = pd.read_excel(ruta_hc)
     
-    # Identificar columna de documento en HC
-    col_doc = df_hc.columns[1]
+    # Identificamos las columnas basándonos en la nueva estructura (índices 0, 1, 2, 3)
+    col_doc = df_hc.columns[0]      # Codigo_KC
+    col_fecha_hc = df_hc.columns[1] # Fecha HC
+    col_peso = df_hc.columns[2]     # Peso
+    col_talla = df_hc.columns[3]    # qm1_talla_cm
 
     # Agrupar por documento (tomando el registro más reciente usando la Fecha HC)
-    df_hc = df_hc.sort_values(by=df_hc.columns[22], ascending=False)
+    df_hc = df_hc.sort_values(by=col_fecha_hc, ascending=False)
     df_hc_unico = df_hc.drop_duplicates(subset=[col_doc], keep='first')
 
     wb = openpyxl.load_workbook(ruta_plantilla)
     ws = wb.active
 
-    idx_peso = 23      # X -> Peso
-    idx_talla = 66     # BO -> qm1_talla_cm
-    idx_fecha_hc = 22  # W -> Fecha HC
-
     dict_hc = {}
     for _, row in df_hc_unico.iterrows():
-        doc = str(row[col_doc]).split('.')[0].strip()
-        dict_hc[doc] = {
-            "peso": row.iloc[idx_peso],
-            "talla": row.iloc[idx_talla],
-            "fecha": row.iloc[idx_fecha_hc]
-        }
+        doc_val = row[col_doc]
+        if pd.notnull(doc_val):
+            # Limpieza segura del documento (evitar decimales)
+            try:
+                doc = str(int(float(doc_val)))
+            except:
+                doc = str(doc_val).strip()
+                
+            dict_hc[doc] = {
+                "peso": row[col_peso],
+                "talla": row[col_talla],
+                "fecha": row[col_fecha_hc]
+            }
 
     for r in range(2, ws.max_row + 1):
-        doc_plantilla = str(ws.cell(row=r, column=5).value).split('.')[0].strip()
-        
-        if doc_plantilla in dict_hc:
-            datos = dict_hc[doc_plantilla]
+        cell_val = ws.cell(row=r, column=5).value
+        if cell_val is not None:
+            try:
+                doc_plantilla = str(int(float(cell_val)))
+            except:
+                doc_plantilla = str(cell_val).strip()
             
-            fec_str = ""
-            if pd.notnull(datos["fecha"]):
-                fec_str = pd.to_datetime(str(datos["fecha"]), errors='coerce').strftime('%Y/%m/%d')
-                if fec_str == "NaT": fec_str = ""
+            if doc_plantilla in dict_hc:
+                datos = dict_hc[doc_plantilla]
+                
+                fec_str = ""
+                if pd.notnull(datos["fecha"]):
+                    # Usamos .date() para enviar la fecha pura a Excel y evitar horas adicionales
+                    parsed_date = pd.to_datetime(str(datos["fecha"]), errors='coerce')
+                    if pd.notnull(parsed_date):
+                        fec_str = parsed_date.date()
 
-            if pd.notnull(datos["peso"]):
-                ws.cell(row=r, column=column_index_from_string("AE"), value=datos["peso"])
-                ws.cell(row=r, column=column_index_from_string("AD"), value=fec_str)
-            
-            if pd.notnull(datos["talla"]):
-                ws.cell(row=r, column=column_index_from_string("AG"), value=datos["talla"])
-                ws.cell(row=r, column=column_index_from_string("AF"), value=fec_str)
+                if pd.notnull(datos["peso"]):
+                    ws.cell(row=r, column=column_index_from_string("AE"), value=datos["peso"])
+                    if fec_str:
+                        ws.cell(row=r, column=column_index_from_string("AD"), value=fec_str)
+                
+                if pd.notnull(datos["talla"]):
+                    ws.cell(row=r, column=column_index_from_string("AG"), value=datos["talla"])
+                    if fec_str:
+                        ws.cell(row=r, column=column_index_from_string("AF"), value=fec_str)
 
     wb.save(ruta_plantilla)
     wb.close()
@@ -117,41 +133,52 @@ def procesar_ajustes_demograficos(ruta_plantilla, ruta_produccion):
 
     dict_demo = {}
     for _, row in df_prod_unico.iterrows():
-        doc = str(row[col_doc]).split('.')[0].strip()
-        dict_demo[doc] = {
-            "tipo_id": row.iloc[66],  # <-- CORRECCIÓN: Columna BO (Índice 66)
-            "nombre": row.iloc[10],
-            "sexo": row.iloc[11],
-            "fecha_nace": row.iloc[12]
-        }
+        doc_val = row[col_doc]
+        if pd.notnull(doc_val):
+            try:
+                doc = str(int(float(doc_val)))
+            except:
+                doc = str(doc_val).strip()
+                
+            dict_demo[doc] = {
+                "tipo_id": row.iloc[66],  # Columna BO (Índice 66)
+                "nombre": row.iloc[10],
+                "sexo": row.iloc[11],
+                "fecha_nace": row.iloc[12]
+            }
 
     for r in range(2, ws.max_row + 1):
-        doc_plantilla = str(ws.cell(row=r, column=5).value).split('.')[0].strip()
-        
-        if doc_plantilla in dict_demo:
-            datos = dict_demo[doc_plantilla]
+        cell_val = ws.cell(row=r, column=5).value
+        if cell_val is not None:
+            try:
+                doc_plantilla = str(int(float(cell_val)))
+            except:
+                doc_plantilla = str(cell_val).strip()
             
-            # --- TIPO DE IDENTIFICACIÓN ---
-            if pd.notnull(datos["tipo_id"]):
-                ws.cell(row=r, column=column_index_from_string("D"), value=str(datos["tipo_id"]).strip().upper())
-            
-            # --- DIVISIÓN DE NOMBRES ---
-            p_ape, s_ape, p_nom, s_nom = dividir_nombre_compuesto(datos["nombre"])
-            
-            ws.cell(row=r, column=column_index_from_string("F"), value=p_ape)
-            ws.cell(row=r, column=column_index_from_string("G"), value=s_ape)
-            ws.cell(row=r, column=column_index_from_string("H"), value=p_nom)
-            ws.cell(row=r, column=column_index_from_string("I"), value=s_nom)
+            if doc_plantilla in dict_demo:
+                datos = dict_demo[doc_plantilla]
+                
+                # --- TIPO DE IDENTIFICACIÓN ---
+                if pd.notnull(datos["tipo_id"]):
+                    ws.cell(row=r, column=column_index_from_string("D"), value=str(datos["tipo_id"]).strip().upper())
+                
+                # --- DIVISIÓN DE NOMBRES ---
+                p_ape, s_ape, p_nom, s_nom = dividir_nombre_compuesto(datos["nombre"])
+                
+                ws.cell(row=r, column=column_index_from_string("F"), value=p_ape)
+                ws.cell(row=r, column=column_index_from_string("G"), value=s_ape)
+                ws.cell(row=r, column=column_index_from_string("H"), value=p_nom)
+                ws.cell(row=r, column=column_index_from_string("I"), value=s_nom)
 
-            # --- SEXO ---
-            if pd.notnull(datos["sexo"]):
-                ws.cell(row=r, column=column_index_from_string("K"), value=str(datos["sexo"]).strip())
+                # --- SEXO ---
+                if pd.notnull(datos["sexo"]):
+                    ws.cell(row=r, column=column_index_from_string("K"), value=str(datos["sexo"]).strip())
 
-            # --- FECHA DE NACIMIENTO ---
-            if pd.notnull(datos["fecha_nace"]):
-                fec_nace_str = pd.to_datetime(str(datos["fecha_nace"]), errors='coerce').strftime('%Y/%m/%d')
-                if fec_nace_str != "NaT":
-                    ws.cell(row=r, column=column_index_from_string("J"), value=fec_nace_str)
+                # --- FECHA DE NACIMIENTO ---
+                if pd.notnull(datos["fecha_nace"]):
+                    parsed_fec_nace = pd.to_datetime(str(datos["fecha_nace"]), errors='coerce')
+                    if pd.notnull(parsed_fec_nace):
+                        ws.cell(row=r, column=column_index_from_string("J"), value=parsed_fec_nace.date())
 
     wb.save(ruta_plantilla)
     wb.close()
