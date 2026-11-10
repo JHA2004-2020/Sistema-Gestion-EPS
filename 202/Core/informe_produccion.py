@@ -439,19 +439,30 @@ def procesar_informe_produccion(config, ruta_plantilla, entidad_sugerida=""):
                     ws.cell(row=fila_destino, column=column_index_from_string("BB"), value=parsed_fec_bb.strftime('%Y/%m/%d'))
                 break
 
+        # =======================================================
+        # SECCIÓN BQ Y ASOCIADAS (Incluyendo CJ con fecha Columna D)
+        # =======================================================
         for item in config.get('BQ_seccion', []):
             p_filtro_norm = " ".join(str(item['filtro']).upper().split())
             match_bq = grupo[grupo['ART_NORM'] == p_filtro_norm]
             if not match_bq.empty:
+                # col_fec corresponde al índice 3 (Columna D del INFORME PRODUCCION)
                 fec_raw_bq = match_bq.iloc[0].get(col_fec, '')
                 parsed_fec_bq = pd.to_datetime(str(fec_raw_bq), errors='coerce')
-                if pd.notnull(parsed_fec_bq):
-                    ws.cell(row=fila_destino, column=column_index_from_string("BQ"), value=parsed_fec_bq.strftime('%Y/%m/%d'))
                 
+                if pd.notnull(parsed_fec_bq):
+                    fecha_limpia = parsed_fec_bq.date()
+                    # Inyectamos la fecha en BQ
+                    ws.cell(row=fila_destino, column=column_index_from_string("BQ"), value=fecha_limpia)
+                    # Inyectamos la misma fecha de la Columna D en CJ
+                    ws.cell(row=fila_destino, column=column_index_from_string("CJ"), value=fecha_limpia)
+                
+                # Inyectamos los valores fijos asociados a esta misma regla
                 ws.cell(row=fila_destino, column=column_index_from_string("CI"), value=1)
                 ws.cell(row=fila_destino, column=column_index_from_string("CK"), value=17)
                 ws.cell(row=fila_destino, column=column_index_from_string("CL"), value=1)
                 ws.cell(row=fila_destino, column=column_index_from_string("CM"), value="053610450501")
+                
                 break
 
         for item in config.get('DI_DJ_seccion', []):

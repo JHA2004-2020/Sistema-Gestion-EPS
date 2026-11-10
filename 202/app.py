@@ -55,6 +55,10 @@ def mostrar_centro_carga_global():
         f_hc = st.file_uploader("Subir INFORME HC (Pesos y Tallas)", type=["xlsx"], key="up_hc")
         guardar_insumo(f_hc, "INFORME HC.xlsx", insumos_dir)
 
+        # NUEVO: Cargador para el archivo PSA
+        f_psa = st.file_uploader("Subir archivo PSA", type=["xlsx"], key="up_psa")
+        guardar_insumo(f_psa, "PSA.xlsx", insumos_dir)
+
     with col2:
         st.markdown("#### Informes Generales y EPS")
         f_general = st.file_uploader("Subir INFORME GENERAL", type=["xlsx"], key="up_gral")
@@ -74,7 +78,7 @@ def mostrar_centro_carga_global():
     with col4:
         f_gest_savia = st.file_uploader("Subir Gestantes (SAVIA SALUD)", type=["xlsx"], key="up_gest_savia")
         guardar_insumo(f_gest_savia, "GESTANTES SAVIA.xlsx", insumos_dir)
-
+    
 
 def main():
     st.sidebar.title("Navegación del Sistema")

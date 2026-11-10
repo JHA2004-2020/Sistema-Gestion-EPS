@@ -102,6 +102,7 @@ def dividir_nombre_compuesto(nombre_completo):
 def procesar_ajustes_demograficos(ruta_plantilla, ruta_produccion):
     """
     Paso 6: Módulo Automatizado AJUSTES ADICIONALES (Nombres y Demografía)
+    Extrae Nombres, Sexo, Fecha de Nacimiento y Tipo de Identificación.
     """
     if not Path(ruta_produccion).exists():
         raise Exception(f"No se encontró el INFORME PRODUCCION en: {ruta_produccion}")
@@ -118,6 +119,7 @@ def procesar_ajustes_demograficos(ruta_plantilla, ruta_produccion):
     for _, row in df_prod_unico.iterrows():
         doc = str(row[col_doc]).split('.')[0].strip()
         dict_demo[doc] = {
+            "tipo_id": row.iloc[66],  # <-- CORRECCIÓN: Columna BO (Índice 66)
             "nombre": row.iloc[10],
             "sexo": row.iloc[11],
             "fecha_nace": row.iloc[12]
@@ -129,6 +131,11 @@ def procesar_ajustes_demograficos(ruta_plantilla, ruta_produccion):
         if doc_plantilla in dict_demo:
             datos = dict_demo[doc_plantilla]
             
+            # --- TIPO DE IDENTIFICACIÓN ---
+            if pd.notnull(datos["tipo_id"]):
+                ws.cell(row=r, column=column_index_from_string("D"), value=str(datos["tipo_id"]).strip().upper())
+            
+            # --- DIVISIÓN DE NOMBRES ---
             p_ape, s_ape, p_nom, s_nom = dividir_nombre_compuesto(datos["nombre"])
             
             ws.cell(row=r, column=column_index_from_string("F"), value=p_ape)
@@ -136,9 +143,11 @@ def procesar_ajustes_demograficos(ruta_plantilla, ruta_produccion):
             ws.cell(row=r, column=column_index_from_string("H"), value=p_nom)
             ws.cell(row=r, column=column_index_from_string("I"), value=s_nom)
 
+            # --- SEXO ---
             if pd.notnull(datos["sexo"]):
                 ws.cell(row=r, column=column_index_from_string("K"), value=str(datos["sexo"]).strip())
 
+            # --- FECHA DE NACIMIENTO ---
             if pd.notnull(datos["fecha_nace"]):
                 fec_nace_str = pd.to_datetime(str(datos["fecha_nace"]), errors='coerce').strftime('%Y/%m/%d')
                 if fec_nace_str != "NaT":

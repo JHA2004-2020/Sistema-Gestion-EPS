@@ -227,6 +227,18 @@ def ejecutar_modulo_informe_general(entidad):
             except Exception as e:
                 st.warning(f"Aviso en COP: {e}")
 
+            # 3. Ejecutar PSA
+            try:
+                from Core.psa import procesar_psa
+                ruta_psa = insumos_dir / "PSA.xlsx"
+                if ruta_psa.exists():
+                    procesar_psa(plantilla_resultado, ruta_psa)
+                    st.write("✅ Módulo **PSA** cruzado correctamente (Columnas BV y DF).")
+                else:
+                    st.warning("⚠️ No se encontró el archivo PSA.xlsx. Se omitió este paso.")
+            except Exception as e:
+                st.error(f"Error al procesar PSA: {e}")
+
             # 4. Procesar INFORME GENERAL
             try:
                 wb_final = openpyxl.load_workbook(plantilla_resultado)
