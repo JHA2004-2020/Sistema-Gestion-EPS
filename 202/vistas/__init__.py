@@ -1,0 +1,4 @@
+from .centro_carga import mostrar_centro_carga_global
+from .vista_general import ejecutar_modulo_informe_general
+from .vista_produccion import ejecutar_modulo_informe_produccion
+from .vista_consolidacion import ejecutar_vista_consolidacion
